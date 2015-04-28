@@ -1,6 +1,7 @@
 package de.starrunner.sweethome3d;
 
 import java.awt.geom.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,15 +14,16 @@ import de.starrunner.sweethome3d.TransformEdit.ObjectState;
  * Applies a {@link AffineTransform transformation} to the list of selected objects.
  *
  * Copyright (c) 2010 by Tobias Liefke
+ * Copyright (c) 2015 by Igor A. Perminov
  *
  * @author Tobias Liefke
  */
 public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends Selectable>>> {
-  private static final long serialVersionUID = -5514573790001584955L;
+  private static final long serialVersionUID = -598934247758642476L;
 
   private final Home home;
 
-  private AffineTransform transformation;
+  private TransformOptions transformOptions;
 
   /**
    * Creates a new instance of the resize edit for undo / redo .
@@ -79,13 +81,26 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
    * @param transformation the affine transformation
    */
   public void transform(AffineTransform transformation) {
-    this.transformation = transformation;
+    transform(transformation, true, true);
+  }
+
+  /**
+   * Applies the transformation to all associated objects using the previous states.
+   *
+   * @param transformation the affine transformation
+   * @param isRotateText whether rotate/flip text (labels, etc)
+   * @param isAdjustText whether adjust text orientation after rotation/flipping
+   */
+  public void transform(AffineTransform transformation, boolean isRotateText, boolean isAdjustText) {
+    this.transformOptions = new TransformOptions(transformation);
+    this.transformOptions.setRotateText(isRotateText);
+    this.transformOptions.setAdjustText(isAdjustText);
     transform();
   }
 
   private void transform() {
     for (ObjectState<?> state : target) {
-      state.transform(transformation);
+      state.transform(transformOptions);
     }
   }
 
@@ -119,6 +134,142 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       return new Rectangle2D.Float(0, 0, 0, 0);
     }
     return new Rectangle2D.Float(left, top, right - left, bottom - top);
+  }
+
+  public static class TransformOptions implements Serializable {
+    private static final long serialVersionUID = 7213116212945906935L;
+
+    private AffineTransform transformation;
+    private boolean isRotateText, isAdjustText;
+
+    private boolean isRotation, isHFlip, isVFlip;
+    private float rotationAngle;
+
+    public TransformOptions(AffineTransform transformation) {
+      this.transformation = transformation;
+      this.isRotateText = true;
+      this.isAdjustText = true;
+
+      isRotation = Math.abs(transformation.getShearX()) > Float.MIN_VALUE ||
+        Math.abs(transformation.getShearY()) > Float.MIN_VALUE;
+
+      float rotationSin, rotationCos;
+
+      if (isRotation) {
+        rotationAngle = (float) Math.atan2(
+            transformation.getShearY(), transformation.getScaleX());
+        rotationSin = (float) Math.sin(rotationAngle);
+        rotationCos = (float) Math.cos(rotationAngle);
+
+        if (rotationAngle < 0) {
+          rotationAngle += Math.PI * 2;
+        }
+
+        if (Math.abs(rotationSin) > Math.abs(rotationCos)) {
+          isHFlip = (transformation.getShearY() < 0) != (rotationSin < 0);
+          isVFlip = (transformation.getShearX() < 0) == (rotationSin < 0);
+        }
+        else {
+          isHFlip = (transformation.getScaleX() < 0) != (rotationCos < 0);
+          isVFlip = (transformation.getScaleY() < 0) != (rotationCos < 0);
+        }
+      }
+      else {
+        rotationAngle = 0.0f;
+        isHFlip = transformation.getScaleX() < 0;
+        isVFlip = transformation.getScaleY() < 0;
+      }
+    }
+
+    public AffineTransform getTransformation() {
+      return transformation;
+    }
+
+    public boolean isRotateText() {
+      return isRotateText;
+    }
+
+    public void setRotateText(boolean isRotateText) {
+      this.isRotateText = isRotateText;
+    }
+
+    public boolean isAdjustText() {
+      return isAdjustText;
+    }
+
+    public void setAdjustText(boolean isAdjustText) {
+      this.isAdjustText = isAdjustText;
+    }
+
+    public float getRotationAngle() {
+      return rotationAngle;
+    }
+
+    public boolean isRotation() {
+      return isRotation;
+    }
+
+    public boolean isHFlip() {
+      return isHFlip;
+    }
+
+    public boolean isVFlip() {
+      return isVFlip;
+    }
+
+    public float transformTextAngle(float angle) {
+      if (!isRotateText() || (!isHFlip() && !isVFlip() && !isRotation())) {
+        return angle;
+      }
+
+      float newAngle = angle;
+
+      if (isHFlip()) {
+        // Horizontal flipping
+        newAngle = (float) Math.PI * 2 - newAngle;
+      }
+
+      if (isVFlip()) {
+        // Vertical flipping
+        newAngle = (float) Math.PI - newAngle;
+
+        if (newAngle < 0) {
+          newAngle += Math.PI * 2;
+        }
+      }
+
+      if (isRotation()) {
+        // Rotation
+        newAngle += getRotationAngle();
+
+        if (newAngle >= Math.PI * 2) {
+          newAngle -= Math.PI * 2;
+        }
+      }
+
+      if (isAdjustText() && newAngle > Math.PI / 2 - Float.MIN_VALUE
+          && newAngle < Math.PI * 3 / 2 + Float.MIN_VALUE)
+      {
+        // Adjust text orientation to keep it readable
+        newAngle += Math.PI;
+
+        if (newAngle >= Math.PI * 2) {
+          newAngle -= Math.PI * 2;
+        }
+      }
+
+      return newAngle;
+    }
+
+    @Override
+    public String toString() {
+      return "TransformOptions[transformation=" + transformation +
+          ", isRotateText=" + isRotateText + ", isAdjustText=" + isAdjustText +
+          ", rotationAngle=" + rotationAngle + ", isRotation=" + isRotation +
+          ", isHFlip=" + isHFlip + ", isVFlip=" + isVFlip +
+          "]";
+    }
+
   }
 
   /**
@@ -155,9 +306,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     /**
      * Applies the transformation to the associated object using the coordinates found during creation.
      * 
-     * @param transformation the associated transformation
+     * @param transformOptions the associated transformation
      */
-    public abstract void transform(AffineTransform transformation);
+    public abstract void transform(TransformOptions transformOptions);
 
   }
 
@@ -203,7 +354,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
+
       setStartPoint(transformation.transform(startPoint, null));
       setEndPoint(transformation.transform(endPoint, null));
 
@@ -273,7 +426,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     private final float[][] points;
     private final Point2D.Float center;
     private final Point2D.Float nameOffset;
+    private final float nameAngle;
     private final Point2D.Float areaOffset;
+    private final float areaAngle;
 
     /**
      * Creates a new room state.
@@ -286,7 +441,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       points = room.getPoints();
       center = new Point2D.Float(room.getXCenter(), room.getYCenter());
       nameOffset = new Point2D.Float(room.getNameXOffset(), room.getNameYOffset());
+      nameAngle = room.getNameAngle();
       areaOffset = new Point2D.Float(room.getAreaXOffset(), room.getAreaYOffset());
+      areaAngle = room.getAreaAngle();
     }
 
     @Override
@@ -294,12 +451,16 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       object.setPoints(points);
       object.setNameXOffset(nameOffset.x);
       object.setNameYOffset(nameOffset.y);
+      object.setNameAngle(nameAngle);
       object.setAreaXOffset(areaOffset.x);
       object.setAreaYOffset(areaOffset.y);
+      object.setAreaAngle(areaAngle);
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
+
       // Create a new array for modification
       float[][] points = new float[this.points.length][];
       for (int i = 0; i < points.length; i++) {
@@ -317,6 +478,8 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       transformation.transform(areaPoint, newOffset);
       object.setAreaXOffset(newOffset.x - object.getXCenter());
       object.setAreaYOffset(newOffset.y - object.getYCenter());
+      object.setNameAngle(transformOptions.transformTextAngle(nameAngle));
+      object.setAreaAngle(transformOptions.transformTextAngle(areaAngle));
     }
 
   }
@@ -327,6 +490,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
   private static final class LabelState extends ObjectState<Label> {
     private final float x;
     private final float y;
+    private final float angle;
 
     /**
      * Creates a new label state.
@@ -338,20 +502,23 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       // Save the point
       x = label.getX();
       y = label.getY();
+      angle = label.getAngle();
     }
 
     @Override
     public void reset() {
       object.setX(x);
       object.setY(y);
+      object.setAngle(angle);
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
       Point2D.Float point = new Point2D.Float(x, y);
-      transformation.transform(point, point);
+      transformOptions.getTransformation().transform(point, point);
       object.setX(point.x);
       object.setY(point.y);
+      object.setAngle(transformOptions.transformTextAngle(angle));
     }
 
   }
@@ -387,7 +554,8 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
       Point2D.Float transformStart = new Point2D.Float();
       transformation.transform(start, transformStart);
       Point2D.Float transformEnd = new Point2D.Float();
@@ -470,7 +638,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
+
       Point2D.Float newCenter = new Point2D.Float();
       transformation.transform(center, newCenter);
       object.setX(newCenter.x);
@@ -524,9 +694,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     }
 
     @Override
-    public void transform(AffineTransform transformation) {
+    public void transform(TransformOptions transformOptions) {
       Point2D.Float result = new Point2D.Float();
-      transformation.transform(point, result);
+      transformOptions.getTransformation().transform(point, result);
       object.setX(result.x);
       object.setY(result.y);
     }
