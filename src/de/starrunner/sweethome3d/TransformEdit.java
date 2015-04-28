@@ -271,6 +271,9 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
    */
   private static final class RoomState extends ObjectState<Room> {
     private final float[][] points;
+    private final Point2D.Float center;
+    private final Point2D.Float nameOffset;
+    private final Point2D.Float areaOffset;
 
     /**
      * Creates a new room state.
@@ -281,11 +284,18 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       super(room);
       // Save the points (is already a copy)
       points = room.getPoints();
+      center = new Point2D.Float(room.getXCenter(), room.getYCenter());
+      nameOffset = new Point2D.Float(room.getNameXOffset(), room.getNameYOffset());
+      areaOffset = new Point2D.Float(room.getAreaXOffset(), room.getAreaYOffset());
     }
 
     @Override
     public void reset() {
       object.setPoints(points);
+      object.setNameXOffset(nameOffset.x);
+      object.setNameYOffset(nameOffset.y);
+      object.setAreaXOffset(areaOffset.x);
+      object.setAreaYOffset(areaOffset.y);
     }
 
     @Override
@@ -298,6 +308,15 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         points[i] = newPoint;
       }
       object.setPoints(points);
+      Point2D.Float newOffset = new Point2D.Float();
+      Point2D.Float namePoint = new Point2D.Float(center.x + nameOffset.x, center.y + nameOffset.y);
+      transformation.transform(namePoint, newOffset);
+      object.setNameXOffset(newOffset.x - object.getXCenter());
+      object.setNameYOffset(newOffset.y - object.getYCenter());
+      Point2D.Float areaPoint = new Point2D.Float(center.x + areaOffset.x, center.y + areaOffset.y);
+      transformation.transform(areaPoint, newOffset);
+      object.setAreaXOffset(newOffset.x - object.getXCenter());
+      object.setAreaYOffset(newOffset.y - object.getYCenter());
     }
 
   }
