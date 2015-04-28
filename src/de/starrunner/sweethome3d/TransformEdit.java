@@ -343,6 +343,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
   private static final class DimensionState extends ObjectState<DimensionLine> {
     private final Point2D.Float start;
     private final Point2D.Float end;
+    private final float offset;
 
     /**
      * Creates a new dimension line state.
@@ -354,6 +355,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       // Save the current state
       start = new Point2D.Float(line.getXStart(), line.getYStart());
       end = new Point2D.Float(line.getXEnd(), line.getYEnd());
+      offset = line.getOffset();
     }
 
     @Override
@@ -362,17 +364,32 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       object.setYStart(start.y);
       object.setXEnd(end.x);
       object.setYEnd(end.y);
+      object.setOffset(offset);
     }
 
     @Override
     public void transform(AffineTransform transformation) {
-      Point2D.Float transform = new Point2D.Float();
-      transformation.transform(start, transform);
-      object.setXStart(transform.x);
-      object.setYStart(transform.y);
-      transformation.transform(end, transform);
-      object.setXEnd(transform.x);
-      object.setYEnd(transform.y);
+      Point2D.Float transformStart = new Point2D.Float();
+      transformation.transform(start, transformStart);
+      Point2D.Float transformEnd = new Point2D.Float();
+      transformation.transform(end, transformEnd);
+      float newOffset = offset;
+      if (transformation.getScaleX() < 0 != transformation.getScaleY() < 0) {
+        // If this is a mirroring transformation adjust the offset sign
+        newOffset = -newOffset;
+      }
+      if (transformStart.x > transformEnd.x) {
+        // Adjust line ends to keep text orientation
+        Point2D.Float tmp = transformStart;
+        transformStart = transformEnd;
+        transformEnd = tmp;
+        newOffset = -newOffset;
+      }
+      object.setXStart(transformStart.x);
+      object.setYStart(transformStart.y);
+      object.setXEnd(transformEnd.x);
+      object.setYEnd(transformEnd.y);
+      object.setOffset(newOffset);
     }
 
     /**
