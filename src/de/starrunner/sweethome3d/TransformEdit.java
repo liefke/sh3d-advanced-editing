@@ -410,6 +410,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     private final float angle;
     private final float width;
     private final float depth;
+    private final boolean isModelMirrored;
 
     private final Point2D.Float topRight;
     private final Point2D.Float bottomRight;
@@ -426,6 +427,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       angle = furniture.getAngle();
       width = furniture.getWidth();
       depth = furniture.getDepth();
+      isModelMirrored = furniture.isModelMirrored();
 
       // Calculate the corners for later transformation
       float sin = (float) Math.sin(angle);
@@ -445,6 +447,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       object.setY(center.y);
       object.setWidth(width);
       object.setDepth(depth);
+      object.setModelMirrored(isModelMirrored);
     }
 
     @Override
@@ -463,7 +466,18 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       Point2D.Float newRight = new Point2D.Float((newTopRight.x + newBottomRight.x) / 2,
           (newTopRight.y + newBottomRight.y) / 2);
       object.setWidth((float) newCenter.distance(newRight) * 2);
-      object.setAngle((float) Math.atan2(newRight.y - newCenter.y, newRight.x - newCenter.x));
+      float newAngle = (float) Math.atan2(newRight.y - newCenter.y, newRight.x - newCenter.x);
+      boolean isNewModelMirrored = isModelMirrored;
+      if (transformation.getScaleX() < 0 != transformation.getScaleY() < 0) {
+        // If this is a mirroring transformation adjust the angle and mirroring
+        newAngle += Math.PI;
+        if (newAngle >= Math.PI * 2) {
+          newAngle -= Math.PI * 2;
+        }
+        isNewModelMirrored = !isModelMirrored;
+      }
+      object.setModelMirrored(isNewModelMirrored);
+      object.setAngle(newAngle);
     }
   }
 
