@@ -25,11 +25,12 @@ import de.starrunner.util.strings.Mnemonics;
  * Lets a user rotate the selected objects.
  *
  * Copyright (c) 2010 by Tobias Liefke
+ * Copyright (c) 2015 by Igor A. Perminov
  *
  * @author Tobias Liefke
  */
 public class RotateView extends JPanel implements DialogView {
-  private static final long serialVersionUID = 5472910675709402527L;
+  private static final long serialVersionUID = 6279629119148423282L;
 
   private final Home home;
   private final UndoableEditSupport undoSupport;
@@ -41,6 +42,9 @@ public class RotateView extends JPanel implements DialogView {
   private Timer rotateTimer;
 
   private NullableSpinnerNumberModel angleModel;
+
+  private JCheckBox rotateTextButton;
+  private JCheckBox adjustTextButton;
 
   /**
    * Creates a new instance of RotateView.
@@ -88,6 +92,28 @@ public class RotateView extends JPanel implements DialogView {
     add(angleSpinner, new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
     Mnemonics.configure(angleLabel, angleSpinner);
+    ActionListener actionListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          rotateTimer.restart();
+        }
+    };
+    rotateTextButton = Mnemonics.configure(new JCheckBox(Msg.msg("RotateView.rotateTextLabel")));
+    rotateTextButton.setSelected(true);
+    rotateTextButton.addActionListener(actionListener);
+    rotateTextButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          adjustTextButton.setEnabled(rotateTextButton.isSelected());
+        }
+    });
+    add(rotateTextButton, new GridBagConstraints(0, 1, 2, 1, 0, 0, GridBagConstraints.LINE_START,
+        GridBagConstraints.NONE, new Insets(5, 0, 0, 0), 0, 0));
+    adjustTextButton = Mnemonics.configure(new JCheckBox(Msg.msg("RotateView.adjustTextLabel")));
+    adjustTextButton.setSelected(true);
+    adjustTextButton.addActionListener(actionListener);
+    add(adjustTextButton, new GridBagConstraints(0, 2, 2, 1, 0, 0, GridBagConstraints.LINE_START,
+        GridBagConstraints.NONE, new Insets(0, 20, 0, 0), 0, 0));
   }
 
   /**
@@ -122,8 +148,10 @@ public class RotateView extends JPanel implements DialogView {
   private void rotate() {
     Number angle = angleModel.getNumber();
     if (angle != null) {
+      boolean isRotateText = rotateTextButton.isSelected();
+      boolean isAdjustText = isRotateText && adjustTextButton.isSelected();
       currentEdit.transform(AffineTransform.getRotateInstance(Math.toRadians(angle.floatValue()), bounds.getCenterX(),
-        bounds.getCenterY()));
+        bounds.getCenterY()), isRotateText, isAdjustText);
     }
   }
 
