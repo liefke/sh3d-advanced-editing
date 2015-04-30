@@ -1,0 +1,1 @@
+See [src/LICENSE.txt](https://github.com/liefke/sh3d-advanced-editing/src/LICENSE.txt) for license information.
