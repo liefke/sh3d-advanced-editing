@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Created-By: Tobias Liefke
+Built-By: Tobias Liefke
+Specification-Title: SH3D Edit Extensions
+Specification-Version: 1.3
+Implementation-Title: SH3D Edit Extensions
+Implementation-Version: 1.3
