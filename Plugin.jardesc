@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="WINDOWS-1252" standalone="no"?>
 <jardesc>
-    <jar path="SweetHomePlugins/AdvancedEditing.sh3p"/>
-    <options buildIfNeeded="true" compress="true" descriptionLocation="/SweetHomePlugins/Plugin.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="true" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <jar path="sh3d-advanced-editing/AdvancedEditing.sh3p"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/sh3d-advanced-editing/Plugin.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="true" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
-    <manifest generateManifest="false" manifestLocation="/SweetHomePlugins/src/META-INF/MANIFEST.MF" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+    <manifest generateManifest="false" manifestLocation="/sh3d-advanced-editing/src/META-INF/MANIFEST.MF" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
         <sealing sealJar="false">
             <packagesToSeal/>
             <packagesToUnSeal/>
         </sealing>
     </manifest>
     <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
-        <javaElement handleIdentifier="=SweetHomePlugins/src"/>
+        <javaElement handleIdentifier="=sh3d-advanced-editing/src"/>
     </selectedElements>
 </jardesc>
