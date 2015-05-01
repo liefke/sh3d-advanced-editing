@@ -13,10 +13,11 @@ import de.starrunner.sweethome3d.TransformEdit.ObjectState;
 /**
  * Applies a {@link AffineTransform transformation} to the list of selected objects.
  *
- * Copyright (c) 2010 by Tobias Liefke
+ * Copyright (c) 2010-2015 by Tobias Liefke
  * Copyright (c) 2015 by Igor A. Perminov
  *
  * @author Tobias Liefke
+ * @author Igor A. Perminov
  */
 public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends Selectable>>> {
   private static final long serialVersionUID = -598934247758642476L;
@@ -47,6 +48,8 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         target.add(new FurnitureState((HomePieceOfFurniture) item));
       } else if (item instanceof ObserverCamera) {
         target.add(new CameraState((ObserverCamera) item));
+      } else if (item instanceof Compass) {
+        target.add(new CompassState((Compass) item));
       } else if (item != null) {
         System.err.println(getClass() + " - Unknown item type: " + item.getClass());
       }
@@ -92,9 +95,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
    * @param isAdjustText whether adjust text orientation after rotation/flipping
    */
   public void transform(AffineTransform transformation, boolean isRotateText, boolean isAdjustText) {
-    this.transformOptions = new TransformOptions(transformation);
-    this.transformOptions.setRotateText(isRotateText);
-    this.transformOptions.setAdjustText(isAdjustText);
+    this.transformOptions = new TransformOptions(transformation, isRotateText, isAdjustText);
     transform();
   }
 
@@ -105,7 +106,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
   }
 
   /**
-   * Resolves the bounds of all associated object in cm.
+   * Resolves the bounds of all associated objects in cm.
    *
    * @return the bounds of the objects, or an empty rectangle if no points were found
    */
@@ -136,30 +137,30 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     return new Rectangle2D.Float(left, top, right - left, bottom - top);
   }
 
-  public static class TransformOptions implements Serializable {
+  /** Saves the current tranformation options. */
+  private static class TransformOptions implements Serializable {
     private static final long serialVersionUID = 7213116212945906935L;
 
     private AffineTransform transformation;
-    private boolean isRotateText, isAdjustText;
+    private boolean rotateText, adjustText;
 
     private boolean isRotation, isHFlip, isVFlip;
     private float rotationAngle;
 
-    public TransformOptions(AffineTransform transformation) {
+    public TransformOptions(AffineTransform transformation, boolean rotateText, boolean adjustText) {
+      // Save the options
       this.transformation = transformation;
-      this.isRotateText = true;
-      this.isAdjustText = true;
+      this.rotateText = rotateText;
+      this.adjustText = adjustText;
 
-      isRotation = Math.abs(transformation.getShearX()) > Float.MIN_VALUE ||
-        Math.abs(transformation.getShearY()) > Float.MIN_VALUE;
-
-      float rotationSin, rotationCos;
+      // And pre calculate any rotation informations for the text transformation
+      isRotation = Math.abs(transformation.getShearX()) > Float.MIN_VALUE
+          || Math.abs(transformation.getShearY()) > Float.MIN_VALUE;
 
       if (isRotation) {
-        rotationAngle = (float) Math.atan2(
-            transformation.getShearY(), transformation.getScaleX());
-        rotationSin = (float) Math.sin(rotationAngle);
-        rotationCos = (float) Math.cos(rotationAngle);
+        rotationAngle = (float) Math.atan2(transformation.getShearY(), transformation.getScaleX());
+        float rotationSin = (float) Math.sin(rotationAngle);
+        float rotationCos = (float) Math.cos(rotationAngle);
 
         if (rotationAngle < 0) {
           rotationAngle += Math.PI * 2;
@@ -168,68 +169,45 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         if (Math.abs(rotationSin) > Math.abs(rotationCos)) {
           isHFlip = (transformation.getShearY() < 0) != (rotationSin < 0);
           isVFlip = (transformation.getShearX() < 0) == (rotationSin < 0);
-        }
-        else {
+        } else {
           isHFlip = (transformation.getScaleX() < 0) != (rotationCos < 0);
           isVFlip = (transformation.getScaleY() < 0) != (rotationCos < 0);
         }
-      }
-      else {
+      } else {
         rotationAngle = 0.0f;
         isHFlip = transformation.getScaleX() < 0;
         isVFlip = transformation.getScaleY() < 0;
       }
     }
 
+    /**
+     * The transformation to apply.
+     *
+     * @return the transformation object
+     */
     public AffineTransform getTransformation() {
       return transformation;
     }
 
-    public boolean isRotateText() {
-      return isRotateText;
-    }
-
-    public void setRotateText(boolean isRotateText) {
-      this.isRotateText = isRotateText;
-    }
-
-    public boolean isAdjustText() {
-      return isAdjustText;
-    }
-
-    public void setAdjustText(boolean isAdjustText) {
-      this.isAdjustText = isAdjustText;
-    }
-
-    public float getRotationAngle() {
-      return rotationAngle;
-    }
-
-    public boolean isRotation() {
-      return isRotation;
-    }
-
-    public boolean isHFlip() {
-      return isHFlip;
-    }
-
-    public boolean isVFlip() {
-      return isVFlip;
-    }
-
+    /**
+     * Converts the given text angle to the target angle.
+     *
+     * @param angle the current angle of a text
+     * @return the angle to apply to the text 
+     */
     public float transformTextAngle(float angle) {
-      if (!isRotateText() || (!isHFlip() && !isVFlip() && !isRotation())) {
+      if (!rotateText || (isHFlip && isVFlip && !isRotation)) {
         return angle;
       }
 
       float newAngle = angle;
 
-      if (isHFlip()) {
+      if (isHFlip) {
         // Horizontal flipping
         newAngle = (float) Math.PI * 2 - newAngle;
       }
 
-      if (isVFlip()) {
+      if (isVFlip) {
         // Vertical flipping
         newAngle = (float) Math.PI - newAngle;
 
@@ -238,18 +216,16 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         }
       }
 
-      if (isRotation()) {
+      if (isRotation) {
         // Rotation
-        newAngle += getRotationAngle();
+        newAngle += rotationAngle;
 
         if (newAngle >= Math.PI * 2) {
           newAngle -= Math.PI * 2;
         }
       }
 
-      if (isAdjustText() && newAngle > Math.PI / 2 - Float.MIN_VALUE
-          && newAngle < Math.PI * 3 / 2 + Float.MIN_VALUE)
-      {
+      if (adjustText && newAngle > Math.PI / 2 - Float.MIN_VALUE && newAngle < Math.PI * 3 / 2 + Float.MIN_VALUE) {
         // Adjust text orientation to keep it readable
         newAngle += Math.PI;
 
@@ -259,15 +235,6 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       }
 
       return newAngle;
-    }
-
-    @Override
-    public String toString() {
-      return "TransformOptions[transformation=" + transformation +
-          ", isRotateText=" + isRotateText + ", isAdjustText=" + isAdjustText +
-          ", rotationAngle=" + rotationAngle + ", isRotation=" + isRotation +
-          ", isHFlip=" + isHFlip + ", isVFlip=" + isVFlip +
-          "]";
     }
 
   }
@@ -667,6 +634,64 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       }
       object.setModelMirrored(isNewModelMirrored);
       object.setAngle(newAngle);
+    }
+  }
+
+  /**
+   * Saves the state of the compass.
+   */
+  private static final class CompassState extends ObjectState<Compass> {
+    private final Point2D.Float center;
+    private final float angle;
+    private final float diameter;
+
+    private final Point2D.Float topRight;
+    private final Point2D.Float bottomRight;
+
+    /**
+     * Creates a new furniture state.
+     *
+     * @param compass the associated furniture
+     */
+    public CompassState(Compass compass) {
+      super(compass);
+      // Save the current state
+      center = new Point2D.Float(compass.getX(), compass.getY());
+      angle = compass.getNorthDirection();
+      diameter = compass.getDiameter();
+
+      // Calculate the corners for later transformation
+      float radius = diameter / 2;
+      topRight = new Point2D.Float(center.x + radius, center.y - radius);
+      bottomRight = new Point2D.Float(center.x + radius, center.y + radius);
+    }
+
+    @Override
+    public void reset() {
+      object.setX(center.x);
+      object.setY(center.y);
+      object.setDiameter(diameter);
+      object.setNorthDirection(angle);
+    }
+
+    @Override
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
+
+      Point2D.Float newCenter = new Point2D.Float();
+      transformation.transform(center, newCenter);
+      object.setX(newCenter.x);
+      object.setY(newCenter.y);
+
+      // Calculate the new width, height and angle
+      Point2D.Float newTopRight = new Point2D.Float();
+      transformation.transform(topRight, newTopRight);
+      Point2D.Float newBottomRight = new Point2D.Float();
+      transformation.transform(bottomRight, newBottomRight);
+      Point2D.Float newRight = new Point2D.Float((newTopRight.x + newBottomRight.x) / 2,
+          (newTopRight.y + newBottomRight.y) / 2);
+      object.setDiameter((float) newCenter.distance(newRight) * 2);
+      object.setNorthDirection((float) Math.atan2(newRight.y - newCenter.y, newRight.x - newCenter.x));
     }
   }
 
