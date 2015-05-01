@@ -2,8 +2,7 @@ package de.starrunner.sweethome3d;
 
 import java.awt.geom.*;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import com.eteks.sweethome3d.model.*;
 
@@ -24,17 +23,37 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
 
   private final Home home;
 
+  private final boolean emptySelection;
+
   private TransformOptions transformOptions;
 
+  private String presentationName;
+
   /**
-   * Creates a new instance of the resize edit for undo / redo .
-   *
+   * Creates a new instance of the resize edit for undo / redo.
+   * 
+   * @param presentationName the presentation name of the edit
    * @param home the home
    */
-  public TransformEdit(Home home) {
+  public TransformEdit(String presentationName, Home home) {
     super(new ArrayList<ObjectState<? extends Selectable>>());
-    // Save the current state of the selected items
+    this.presentationName = presentationName;
     this.home = home;
+
+    // Initialize selection, if nessecary
+    this.emptySelection = home.getSelectedItems().isEmpty();
+    if (emptySelection) {
+      List<Selectable> selectedItems = new ArrayList<Selectable>();
+      selectedItems.addAll(home.getWalls());
+      selectedItems.addAll(home.getRooms());
+      selectedItems.addAll(home.getDimensionLines());
+      selectedItems.addAll(home.getLabels());
+      selectedItems.addAll(home.getFurniture());
+      selectedItems.add(home.getCompass());
+      home.setSelectedItems(selectedItems);
+    }
+
+    // Save the current state of the selected items
     for (Selectable item : home.getSelectedItems()) {
       if (item instanceof Wall) {
         target.add(new WallState((Wall) item));
@@ -54,6 +73,12 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         System.err.println(getClass() + " - Unknown item type: " + item.getClass());
       }
     }
+    this.transformOptions = new TransformOptions(new AffineTransform(), false, false);
+  }
+
+  @Override
+  public String getPresentationName() {
+    return presentationName;
   }
 
   @Override
@@ -67,7 +92,11 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
     for (ObjectState<? extends Selectable> state : target) {
       state.reset();
     }
-    selectItems();
+    if (emptySelection) {
+      home.setSelectedItems(Collections.<Selectable> emptyList());
+    } else {
+      selectItems();
+    }
   }
 
   private void selectItems() {

@@ -50,6 +50,11 @@ public class ElevationEdit extends AbstractObjectEdit<List<ElevationEdit.Furnitu
     home.setSelectedItems(selectedItems);
   }
 
+  @Override
+  public String getPresentationName() {
+    return Msg.msg("ElevationView.dialogTitle");
+  }
+
   /**
    * Elevates all selected furntiture objects by the given amount.
    *

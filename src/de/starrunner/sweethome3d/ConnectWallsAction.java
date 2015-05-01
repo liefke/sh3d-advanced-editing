@@ -92,6 +92,12 @@ public class ConnectWallsAction extends PluginAction {
           state.undo();
         }
       }
+
+      @Override
+      public String getPresentationName() {
+        return Msg.msg("ConnectWallsAction.NAME");
+      }
+
     };
     edit.doAction();
     if (plugin.getUndoableEditSupport() != null) {

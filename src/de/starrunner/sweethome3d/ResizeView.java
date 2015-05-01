@@ -328,7 +328,7 @@ public class ResizeView extends ImmediateEditDialogView {
   public void displayView(View parentView) {
     // Don't apply the next UI changes
     changeState.start();
-    currentEdit = new TransformEdit(home);
+    currentEdit = new TransformEdit(getTitle(), home);
 
     // Calculate bounds in current unit
     bounds = currentEdit.getBounds();

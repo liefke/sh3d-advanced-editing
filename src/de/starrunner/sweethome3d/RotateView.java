@@ -87,7 +87,7 @@ public class RotateView extends ImmediateEditDialogView {
    */
   @Override
   public void displayView(View parentView) {
-    currentEdit = new TransformEdit(home);
+    currentEdit = new TransformEdit(getTitle(), home);
     bounds = currentEdit.getBounds();
 
     showDialog(currentEdit);
