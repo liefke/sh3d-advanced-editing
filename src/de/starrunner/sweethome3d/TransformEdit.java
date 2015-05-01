@@ -91,11 +91,11 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
    * Applies the transformation to all associated objects using the previous states.
    *
    * @param transformation the affine transformation
-   * @param isRotateText whether rotate/flip text (labels, etc)
-   * @param isAdjustText whether adjust text orientation after rotation/flipping
+   * @param rotateText whether rotate/flip text (labels, etc)
+   * @param adjustText whether adjust text orientation after rotation/flipping
    */
-  public void transform(AffineTransform transformation, boolean isRotateText, boolean isAdjustText) {
-    this.transformOptions = new TransformOptions(transformation, isRotateText, isAdjustText);
+  public void transform(AffineTransform transformation, boolean rotateText, boolean adjustText) {
+    this.transformOptions = new TransformOptions(transformation, rotateText, adjustText);
     transform();
   }
 
@@ -683,7 +683,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       object.setX(newCenter.x);
       object.setY(newCenter.y);
 
-      // Calculate the new width, height and angle
+      // Calculate the new diameter and angle
       Point2D.Float newTopRight = new Point2D.Float();
       transformation.transform(topRight, newTopRight);
       Point2D.Float newBottomRight = new Point2D.Float();
@@ -691,7 +691,7 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       Point2D.Float newRight = new Point2D.Float((newTopRight.x + newBottomRight.x) / 2,
           (newTopRight.y + newBottomRight.y) / 2);
       object.setDiameter((float) newCenter.distance(newRight) * 2);
-      object.setNorthDirection((float) Math.atan2(newRight.y - newCenter.y, newRight.x - newCenter.x));
+      object.setNorthDirection(angle + (float) Math.atan2(newRight.y - newCenter.y, newRight.x - newCenter.x));
     }
   }
 

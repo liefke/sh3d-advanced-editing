@@ -28,7 +28,7 @@ import de.starrunner.util.strings.Mnemonics;
  *
  * @author Tobias Liefke
  */
-public class ResizeView extends JPanel implements DialogView {
+public class ResizeView extends ImmediateEditDialogView {
   private static final long serialVersionUID = -3184198019104925119L;
 
   /**
@@ -117,15 +117,10 @@ public class ResizeView extends JPanel implements DialogView {
 
   }
 
-  private final Home home;
-  private final UserPreferences preferences;
-  private final UndoableEditSupport undoSupport;
-
   private TransformEdit currentEdit;
   private Rectangle2D.Float bounds;
 
   private ChangeState changeState = new ChangeState();
-  private Timer resizeTimer;
 
   private NullableSpinnerNumberModel widthModel;
   private NullableSpinnerNumberModel heightModel;
@@ -147,26 +142,8 @@ public class ResizeView extends JPanel implements DialogView {
    * @param undoSupport used for undo support of the current action
    */
   public ResizeView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(new GridBagLayout());
-    this.home = home;
-    this.preferences = preferences;
-    this.undoSupport = undoSupport;
-    initResizeTimer();
+    super(Msg.msg("ResizeView.dialogTitle"), home, preferences, undoSupport);
     initComponents();
-  }
-
-  /**
-   * Initializes the timer responsible for resizing the model - 
-   * to have a small timeout before changes are applied, which results in better user experience.
-   */
-  private void initResizeTimer() {
-    resizeTimer = new Timer(300, new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        resize();
-      }
-    });
-    resizeTimer.setRepeats(false);
   }
 
   /**
@@ -193,7 +170,7 @@ public class ResizeView extends JPanel implements DialogView {
         if (keepRatioButton.isSelected()) {
           keepRatio(widthModel);
         } else {
-          resizeTimer.restart();
+          applyLazy();
         }
       }
     }));
@@ -213,7 +190,7 @@ public class ResizeView extends JPanel implements DialogView {
         if (keepRatioButton.isSelected()) {
           keepRatio(heightModel);
         } else {
-          resizeTimer.restart();
+          applyLazy();
         }
       }
     }));
@@ -297,7 +274,7 @@ public class ResizeView extends JPanel implements DialogView {
       @Override
       public void actionPerformed(ActionEvent e) {
         changeFixPoint(Position.valueOf(e.getActionCommand()));
-        resizeTimer.restart();
+        applyLazy();
       }
     };
     positionButtons = new JToggleButton[9];
@@ -326,12 +303,7 @@ public class ResizeView extends JPanel implements DialogView {
     fixPointPanel.add(fixPointXLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
     fixPointXModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
-    fixPointXModel.addChangeListener(changeState.wrap(new ChangeListener() {
-      @Override
-      public void stateChanged(ChangeEvent e) {
-        resizeTimer.restart();
-      }
-    }));
+    fixPointXModel.addChangeListener(createLazyChangeListener());
     final JSpinner fixPointXSpinner = new AutoCommitSpinner(fixPointXModel);
     fixPointPanel.add(fixPointXSpinner, new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_END,
         GridBagConstraints.NONE, new Insets(5, 0, 5, 5), 0, 0));
@@ -342,12 +314,7 @@ public class ResizeView extends JPanel implements DialogView {
     fixPointPanel.add(fixPointYLabel, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
     fixPointYModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
-    fixPointYModel.addChangeListener(changeState.wrap(new ChangeListener() {
-      @Override
-      public void stateChanged(ChangeEvent e) {
-        resizeTimer.restart();
-      }
-    }));
+    fixPointYModel.addChangeListener(createLazyChangeListener());
     final JSpinner fixPointYSpinner = new AutoCommitSpinner(fixPointYModel);
     fixPointPanel.add(fixPointYSpinner, new GridBagConstraints(1, 1, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_END,
         GridBagConstraints.NONE, new Insets(5, 0, 5, 5), 0, 0));
@@ -359,6 +326,7 @@ public class ResizeView extends JPanel implements DialogView {
    */
   @Override
   public void displayView(View parentView) {
+    // Don't apply the next UI changes
     changeState.start();
     currentEdit = new TransformEdit(home);
 
@@ -370,9 +338,11 @@ public class ResizeView extends JPanel implements DialogView {
     bounds.width = unit.centimeterToUnit(bounds.width);
     bounds.height = unit.centimeterToUnit(bounds.height);
 
+    // Prepare all fields
     measureBox.setSelectedIndex(Measure.ABSOLUTE.ordinal());
     widthModel.setValue(bounds.width);
     heightModel.setValue(bounds.height);
+    keepRatioButton.setSelected(true);
     ratioModel.setValue(bounds.width / bounds.height);
     changeFixPoint(Position.CENTER);
     changeState.stop();
@@ -381,24 +351,8 @@ public class ResizeView extends JPanel implements DialogView {
     keepRatioButton.setEnabled(widthSpinner.isEnabled() && heightSpinner.isEnabled());
     ratioSpinner.setEnabled(keepRatioButton.isEnabled());
 
-    Window parentWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-    if (SwingTools.showConfirmDialog(parentWindow instanceof JFrame ? ((JFrame) parentWindow).getRootPane() : null,
-      this, Msg.msg("ResizeView.dialogTitle"), null) == JOptionPane.OK_OPTION) {
-
-      // Apply the last change, if nessecary
-      if (resizeTimer.isRunning()) {
-        resizeTimer.stop();
-        resize();
-      }
-
-      if (undoSupport != null) {
-        undoSupport.postEdit(currentEdit);
-      }
-    } else {
-      // Revert any changes
-      resizeTimer.stop();
-      currentEdit.undo();
-    }
+    // And finally - display the dialog
+    showDialog(currentEdit);
   }
 
   /**
@@ -428,11 +382,12 @@ public class ResizeView extends JPanel implements DialogView {
         widthModel.setValue(currentMeasure.convert(Measure.ABSOLUTE, bounds.width,
           Measure.ABSOLUTE.convert(currentMeasure, bounds.height, height) * ratio.floatValue()));
       }
-      resizeTimer.restart();
+      applyLazy();
     }
   }
 
-  private void resize() {
+  @Override
+  protected void apply() {
     // Check for correct input parameters
     Number width = widthModel.getNumber();
     Number height = heightModel.getNumber();
@@ -450,7 +405,6 @@ public class ResizeView extends JPanel implements DialogView {
     currentEdit.transform(new AffineTransform(resizeX, 0, 0, resizeY, (1 - resizeX)
         * preferences.getLengthUnit().unitToCentimeter(fixPointX), (1 - resizeY)
         * preferences.getLengthUnit().unitToCentimeter(fixPointY)));
-
   }
 
 }

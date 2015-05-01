@@ -10,7 +10,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.undo.UndoableEditSupport;
 
 import com.eteks.sweethome3d.model.*;
-import com.eteks.sweethome3d.swing.SwingTools;
 import com.eteks.sweethome3d.viewcontroller.DialogView;
 import com.eteks.sweethome3d.viewcontroller.View;
 
@@ -25,15 +24,12 @@ import de.starrunner.util.strings.Mnemonics;
  *
  * @author Tobias Liefke
  */
-public class RoomWallsView extends JPanel implements DialogView {
+public class RoomWallsView extends ImmediateEditDialogView {
   private static final long serialVersionUID = -5513320579987973880L;
 
-  private final Home home;
-  private final UserPreferences preferences;
-  private final UndoableEditSupport undoSupport;
+  private CreateWallsEdit edit;
 
   private ChangeState changeState = new ChangeState();
-  private CreateWallsEdit edit;
 
   // Components
   private DefaultListModel walls = new DefaultListModel();
@@ -49,10 +45,7 @@ public class RoomWallsView extends JPanel implements DialogView {
    * @param undoSupport used for undo support of the current action
    */
   public RoomWallsView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(new GridBagLayout());
-    this.home = home;
-    this.preferences = preferences;
-    this.undoSupport = undoSupport;
+    super("Create walls", home, preferences, undoSupport);
     initComponents();
   }
 
@@ -72,6 +65,7 @@ public class RoomWallsView extends JPanel implements DialogView {
         }
       }
     }));
+    setInitialFocusedComponent(wallsList);
     this.add(new JScrollPane(wallsList), new GridBagConstraints(0, 1, 1, 2, 1.0, 1.0, GridBagConstraints.LINE_START,
         GridBagConstraints.BOTH, new Insets(5, 0, 0, 5), 0, 0));
 
@@ -143,15 +137,7 @@ public class RoomWallsView extends JPanel implements DialogView {
     }
 
     changeState.stop();
-    if (SwingTools.showConfirmDialog(parentComponent, this, "Create walls", wallsList) == JOptionPane.OK_OPTION) {
-      // Any wall is already created -> just save undo action
-      if (undoSupport != null) {
-        undoSupport.postEdit(edit);
-      }
-    } else {
-      // Revert any changes
-      edit.undo();
-    }
+    showDialog(edit);
   }
 
   /**
@@ -398,6 +384,11 @@ public class RoomWallsView extends JPanel implements DialogView {
       target.setSelectedItems(Collections.singletonList(room));
     }
 
+  }
+
+  @Override
+  protected void apply() {
+    // We never call #applyLazy()
   }
 
 }

@@ -1,22 +1,19 @@
 package de.starrunner.sweethome3d;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
 
-import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+import javax.swing.JLabel;
+import javax.swing.JSpinner;
 import javax.swing.undo.UndoableEditSupport;
 
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.UserPreferences;
-import com.eteks.sweethome3d.swing.*;
+import com.eteks.sweethome3d.swing.NullableSpinner;
 import com.eteks.sweethome3d.swing.NullableSpinner.NullableSpinnerLengthModel;
 import com.eteks.sweethome3d.viewcontroller.DialogView;
 import com.eteks.sweethome3d.viewcontroller.View;
 
-import de.starrunner.components.event.ChangeState;
 import de.starrunner.util.strings.Mnemonics;
 
 /**
@@ -26,17 +23,10 @@ import de.starrunner.util.strings.Mnemonics;
  *
  * @author Tobias Liefke
  */
-public class ElevationView extends JPanel implements DialogView {
+public class ElevationView extends ImmediateEditDialogView {
   private static final long serialVersionUID = 5472910675709402527L;
 
-  private final Home home;
-  private final UserPreferences preferences;
-  private final UndoableEditSupport undoSupport;
-
-  private final ChangeState changeState = new ChangeState();
-
   private ElevationEdit currentEdit;
-  private Timer timer;
 
   private NullableSpinnerLengthModel elevationModel;
 
@@ -48,25 +38,8 @@ public class ElevationView extends JPanel implements DialogView {
    * @param undoSupport used for undo support of the current action
    */
   public ElevationView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(new GridBagLayout());
-    this.home = home;
-    this.preferences = preferences;
-    this.undoSupport = undoSupport;
-    initTimer();
+    super(Msg.msg("ElevationView.dialogTitle"), home, preferences, undoSupport);
     initComponents();
-  }
-
-  /**
-   * Initializes the timer responsible for changing the objects.
-   */
-  private void initTimer() {
-    timer = new Timer(300, new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        elevate();
-      }
-    });
-    timer.setRepeats(false);
   }
 
   /**
@@ -78,12 +51,7 @@ public class ElevationView extends JPanel implements DialogView {
         GridBagConstraints.NONE, new Insets(0, 0, 0, 5), 0, 0));
     elevationModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
     elevationModel.setLength(new Float(0));
-    elevationModel.addChangeListener(new ChangeListener() {
-      @Override
-      public void stateChanged(ChangeEvent e) {
-        timer.restart();
-      }
-    });
+    elevationModel.addChangeListener(createLazyChangeListener());
     final JSpinner elevationSpinner = new NullableSpinner(elevationModel);
     add(elevationSpinner, new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
@@ -95,30 +63,12 @@ public class ElevationView extends JPanel implements DialogView {
    */
   @Override
   public void displayView(View parentView) {
-    changeState.start();
     currentEdit = new ElevationEdit(home);
-
-    Window parentWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-    if (SwingTools.showConfirmDialog(parentWindow instanceof JFrame ? ((JFrame) parentWindow).getRootPane() : null,
-      this, Msg.msg("ElevationView.dialogTitle"), null) == JOptionPane.OK_OPTION) {
-
-      // Apply the last change, if nessecary
-      if (timer.isRunning()) {
-        timer.stop();
-        elevate();
-      }
-
-      if (undoSupport != null) {
-        undoSupport.postEdit(currentEdit);
-      }
-    } else {
-      // Revert any changes
-      timer.stop();
-      currentEdit.undo();
-    }
+    showDialog(currentEdit);
   }
 
-  private void elevate() {
+  @Override
+  protected void apply() {
     Float elevation = elevationModel.getLength();
     if (elevation != null) {
       currentEdit.elevate(elevation);

@@ -1,6 +1,7 @@
 package de.starrunner.sweethome3d;
 
-import java.awt.*;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
@@ -11,11 +12,9 @@ import javax.swing.undo.UndoableEditSupport;
 
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.UserPreferences;
-import com.eteks.sweethome3d.swing.*;
 import com.eteks.sweethome3d.viewcontroller.DialogView;
 import com.eteks.sweethome3d.viewcontroller.View;
 
-import de.starrunner.components.event.ChangeState;
 import de.starrunner.util.strings.Mnemonics;
 
 /**
@@ -25,18 +24,13 @@ import de.starrunner.util.strings.Mnemonics;
  * Copyright (c) 2015 by Igor A. Perminov
  *
  * @author Igor A. Perminov
+ * @author Tobias Liefke
  */
-public class FlipView extends JPanel implements DialogView {
+public class FlipView extends ImmediateEditDialogView {
   private static final long serialVersionUID = 7891739638750256221L;
-
-  private final Home home;
-  private final UndoableEditSupport undoSupport;
-
-  private final ChangeState changeState = new ChangeState();
 
   private TransformEdit currentEdit;
   private Rectangle2D.Float bounds;
-  private Timer flipTimer;
 
   private JCheckBox flipHorizontallyButton;
   private JCheckBox flipVerticallyButton;
@@ -51,59 +45,43 @@ public class FlipView extends JPanel implements DialogView {
    * @param undoSupport used for undo support of the current action
    */
   public FlipView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(new GridBagLayout());
-    this.home = home;
-    this.undoSupport = undoSupport;
-    initFlipTimer();
+    super(Msg.msg("FlipView.dialogTitle"), home, preferences, undoSupport);
     initComponents();
-  }
-
-  /**
-   * Initializes the timer responsible for rotate the model.
-   */
-  private void initFlipTimer() {
-    flipTimer = new Timer(300, new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        flip();
-      }
-    });
-    flipTimer.setRepeats(false);
   }
 
   /**
    * Create and add the components.
    */
   private void initComponents() {
-    ActionListener changeListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          flipTimer.restart();
-        }
-    };
     flipHorizontallyButton = Mnemonics.configure(new JCheckBox(Msg.msg("FlipView.flipHorizontallyLabel")));
-    flipHorizontallyButton.addActionListener(changeListener);
+    flipHorizontallyButton.addActionListener(createLazyActionListener());
     add(flipHorizontallyButton, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+    add(new JLabel(new ImageIcon(FlipView.class.getResource("resources/plan-flip-objects.png"))),
+      new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.LINE_START, GridBagConstraints.NONE, new Insets(0, 0,
+          0, 0), 0, 0));
     flipVerticallyButton = Mnemonics.configure(new JCheckBox(Msg.msg("FlipView.flipVerticallyLabel")));
-    flipVerticallyButton.addActionListener(changeListener);
+    flipVerticallyButton.addActionListener(createLazyActionListener());
     add(flipVerticallyButton, new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+    add(new JLabel(new ImageIcon(FlipView.class.getResource("resources/plan-flip-objects-vertical.png"))),
+      new GridBagConstraints(1, 1, 1, 1, 0, 0, GridBagConstraints.LINE_START, GridBagConstraints.NONE, new Insets(0, 0,
+          0, 0), 0, 0));
     rotateTextButton = Mnemonics.configure(new JCheckBox(Msg.msg("FlipView.rotateTextLabel")));
     rotateTextButton.setSelected(true);
-    rotateTextButton.addActionListener(changeListener);
+    rotateTextButton.addActionListener(createLazyActionListener());
     rotateTextButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          adjustTextButton.setEnabled(rotateTextButton.isSelected());
-        }
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        adjustTextButton.setEnabled(rotateTextButton.isSelected());
+      }
     });
-    add(rotateTextButton, new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.LINE_START,
+    add(rotateTextButton, new GridBagConstraints(0, 2, 2, 1, 0, 0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
     adjustTextButton = Mnemonics.configure(new JCheckBox(Msg.msg("FlipView.adjustTextLabel")));
     adjustTextButton.setSelected(true);
-    adjustTextButton.addActionListener(changeListener);
-    add(adjustTextButton, new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.LINE_START,
+    adjustTextButton.addActionListener(createLazyActionListener());
+    add(adjustTextButton, new GridBagConstraints(0, 3, 2, 1, 0, 0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 20, 0, 0), 0, 0));
   }
 
@@ -112,41 +90,23 @@ public class FlipView extends JPanel implements DialogView {
    */
   @Override
   public void displayView(View parentView) {
-    changeState.start();
     currentEdit = new TransformEdit(home);
     bounds = currentEdit.getBounds();
 
-    Window parentWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-    if (SwingTools.showConfirmDialog(parentWindow instanceof JFrame ? ((JFrame) parentWindow).getRootPane() : null,
-      this, Msg.msg("FlipView.dialogTitle"), null) == JOptionPane.OK_OPTION) {
-
-      // Apply the last change, if nessecary
-      if (flipTimer.isRunning()) {
-        flipTimer.stop();
-        flip();
-      }
-
-      if (undoSupport != null) {
-        undoSupport.postEdit(currentEdit);
-      }
-    } else {
-      // Revert any changes
-      flipTimer.stop();
-      currentEdit.undo();
-    }
+    showDialog(currentEdit);
   }
 
-  private void flip() {
+  @Override
+  protected void apply() {
     boolean isFlipHorizontally = flipHorizontallyButton.isSelected();
     boolean isFlipVertically = flipVerticallyButton.isSelected();
     boolean isRotateText = rotateTextButton.isSelected();
     boolean isAdjustText = isRotateText && adjustTextButton.isSelected();
     float scaleX = isFlipHorizontally ? -1 : 1;
     float scaleY = isFlipVertically ? -1 : 1;
-    currentEdit.transform(new AffineTransform(
-          scaleX, 0, 0, scaleY,
-          bounds.getCenterX() * (1 - scaleX), bounds.getCenterY() * (1 - scaleY)),
-        isRotateText, isAdjustText);
+    currentEdit.transform(
+      new AffineTransform(scaleX, 0, 0, scaleY, bounds.getCenterX() * (1 - scaleX), bounds.getCenterY() * (1 - scaleY)),
+      isRotateText, isAdjustText);
   }
 
 }

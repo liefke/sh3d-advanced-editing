@@ -27,12 +27,8 @@ import de.starrunner.util.strings.Mnemonics;
  *
  * @author Tobias Liefke
  */
-public class RoomPointsView extends JPanel implements DialogView {
+public class RoomPointsView extends ImmediateEditDialogView {
   private static final long serialVersionUID = -3184198019104925119L;
-
-  private final Home home;
-  private final UserPreferences preferences;
-  private final UndoableEditSupport undoSupport;
 
   private ChangeState changeState = new ChangeState();
 
@@ -54,10 +50,7 @@ public class RoomPointsView extends JPanel implements DialogView {
    * @param undoSupport used for undo support of the current action
    */
   public RoomPointsView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(new GridBagLayout());
-    this.home = home;
-    this.preferences = preferences;
-    this.undoSupport = undoSupport;
+    super(Msg.msg("RoomPointsView.dialogTitle"), home, preferences, undoSupport);
     initComponents();
   }
 
@@ -77,6 +70,7 @@ public class RoomPointsView extends JPanel implements DialogView {
     pointsList.setToolTipText(Msg.msg("RoomPointsView.pointsListTooltip"));
     pointsList.setFixedCellWidth(100);
     pointsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    setInitialFocusedComponent(pointsList);
 
     // Enable moving of points in the list
     MouseInputAdapter listMouseHandler = new MouseInputAdapter() {
@@ -270,6 +264,11 @@ public class RoomPointsView extends JPanel implements DialogView {
     }
   }
 
+  @Override
+  protected void apply() {
+    // We do not use #applyLazy()
+  }
+
   /**
    * @see DialogView#displayView(View)
    */
@@ -306,17 +305,7 @@ public class RoomPointsView extends JPanel implements DialogView {
     pointsList.setSelectedIndex(0);
     lineTabs.setSelectedIndex(0);
 
-    Window parentWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-    if (SwingTools.showConfirmDialog(parentWindow instanceof JFrame ? ((JFrame) parentWindow).getRootPane() : null,
-      this, Msg.msg("RoomPointsView.dialogTitle"), pointsList) == JOptionPane.OK_OPTION) {
-      // Any change is already applied to the room -> just save undo action
-      if (undoSupport != null) {
-        undoSupport.postEdit(edit);
-      }
-    } else {
-      // Revert any changes
-      edit.undo();
-    }
+    showDialog(edit);
   }
 
   /**
