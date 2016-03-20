@@ -9,22 +9,22 @@ import javax.swing.AbstractListModel;
 import javax.swing.ListModel;
 
 import com.eteks.sweethome3d.model.LengthUnit;
-import com.eteks.sweethome3d.model.Room;
 
 /**
- * The points of a room in a list model.
+ * The points of an object in a list model.
  * 
- * The room is modified when a point in the list is changed.
+ * The object is modified when a point in the list is changed.
  *
- * Copyright (c) 2010 by Tobias Liefke
+ * Copyright (c) 2016 by Tobias Liefke
  *
  * @author Tobias Liefke
  */
-public class RoomPointsModel extends AbstractListModel {
-  private static final long serialVersionUID = -8228726318227852710L;
+public class PointsModel extends AbstractListModel {
+
+  private static final long serialVersionUID = 1L;
 
   private float[][] points = new float[0][];
-  private Room room;
+  private PointsContainer target;
   private LengthUnit unit;
 
   /**
@@ -47,12 +47,12 @@ public class RoomPointsModel extends AbstractListModel {
   }
 
   /**
-   * The currently edited room of this model.
+   * The currently edited target object of this model.
    *
-   * @return The edited room.
+   * @return The edited object.
    */
-  public Room getRoom() {
-    return room;
+  public PointsContainer getTarget() {
+    return target;
   }
 
   /**
@@ -66,24 +66,26 @@ public class RoomPointsModel extends AbstractListModel {
     for (int i = 1; i < points.length; i++) {
       path.lineTo(points[i][0], points[i][1]);
     }
-    path.closePath();
+    if (target.isClosed()) {
+      path.closePath();
+    }
     return path;
   }
 
   /**
-   * Sets a new room selection.
+   * Sets a new selection.
    *
-   * @param room The new room to edit.
+   * @param target The new object to edit.
    */
-  public void setRoom(Room room) {
-    this.room = null;
+  public void setTarget(PointsContainer target) {
+    this.target = null;
     int oldSize = this.points.length;
     if (oldSize > 0) {
       this.points = new float[0][];
       fireIntervalRemoved(this, 0, oldSize - 1);
     }
-    this.room = room;
-    this.points = room.getPoints();
+    this.target = target;
+    this.points = target.getPoints();
     if (points.length > 0) {
       fireIntervalAdded(this, 0, points.length - 1);
     }
@@ -135,7 +137,7 @@ public class RoomPointsModel extends AbstractListModel {
       point[0] += dx;
       point[1] += dy;
     }
-    room.setPoints(points);
+    target.setPoints(points);
     fireContentsChanged(this, 0, points.length - 1);
   }
 
@@ -149,7 +151,7 @@ public class RoomPointsModel extends AbstractListModel {
   public void setPoint(int index, float x, float y) {
     points[index][0] = x;
     points[index][1] = y;
-    room.setPoints(points);
+    target.setPoints(points);
     fireContentsChanged(this, index, index);
   }
 
@@ -161,7 +163,7 @@ public class RoomPointsModel extends AbstractListModel {
    */
   public void setX(int index, float x) {
     points[index][0] = x;
-    room.setPoints(points);
+    target.setPoints(points);
     fireContentsChanged(this, index, index);
   }
 
@@ -173,7 +175,7 @@ public class RoomPointsModel extends AbstractListModel {
    */
   public void setY(int index, float y) {
     points[index][1] = y;
-    room.setPoints(points);
+    target.setPoints(points);
     fireContentsChanged(this, index, index);
   }
 
@@ -185,8 +187,8 @@ public class RoomPointsModel extends AbstractListModel {
    * @param y the y coordinate of the point
    */
   public void addPoint(int index, float x, float y) {
-    room.addPoint(x, y, index);
-    this.points = room.getPoints();
+    target.addPoint(index, x, y);
+    this.points = target.getPoints();
     fireIntervalAdded(this, index, index);
   }
 
@@ -196,8 +198,8 @@ public class RoomPointsModel extends AbstractListModel {
    * @param index the index of the point
    */
   public void removePoint(int index) {
-    room.removePoint(index);
-    this.points = room.getPoints();
+    target.removePoint(index);
+    this.points = target.getPoints();
     fireIntervalRemoved(this, index, index);
   }
 
@@ -216,7 +218,7 @@ public class RoomPointsModel extends AbstractListModel {
         System.arraycopy(points, newIndex, points, newIndex + 1, index - newIndex);
       }
       points[newIndex] = point;
-      room.setPoints(points);
+      target.setPoints(points);
       fireContentsChanged(this, index, newIndex);
     }
   }
@@ -347,7 +349,7 @@ public class RoomPointsModel extends AbstractListModel {
       endPoint[0] = (float) (startPoint[0] + length * Math.cos(theta));
       endPoint[1] = (float) (startPoint[1] + length * Math.sin(theta));
     }
-    room.setPoints(points);
+    target.setPoints(points);
     fireContentsChanged(this, endIndex, endIndex);
   }
 

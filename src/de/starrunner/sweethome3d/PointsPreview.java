@@ -9,32 +9,32 @@ import javax.swing.*;
 import javax.swing.event.*;
 
 /**
- * Shows a preview of the current edited room.
+ * Shows a preview of the current edited {@link PointsContainer}.
  *
  * Copyright (c) 2010 by Tobias Liefke
  *
  * @author Tobias Liefke
  */
-public class RoomPointsPreview extends JComponent implements ListDataListener {
+public class PointsPreview extends JComponent implements ListDataListener {
   private static final long serialVersionUID = 3980438894958387347L;
 
   private JList list;
-  private RoomPointsModel model;
+  private PointsModel model;
   private Shape currentShape;
   private Rectangle2D currentBounds;
   private boolean markNextLine;
   private boolean markPreviousLine;
 
   /**
-   * Creates a new instance of RoomPointsPreview.
+   * Creates a new instance of PointsPreview.
    *
    * @param list the list containing the room points
    * 
-   * @throws ClassCastException if the list does not contain a {@link RoomPointsModel}
+   * @throws ClassCastException if the list does not contain a {@link PointsModel}
    */
-  public RoomPointsPreview(final JList list) {
+  public PointsPreview(final JList list) {
     this.list = list;
-    this.model = (RoomPointsModel) list.getModel();
+    this.model = (PointsModel) list.getModel();
     model.addListDataListener(this);
     list.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
       @Override
@@ -98,7 +98,9 @@ public class RoomPointsPreview extends JComponent implements ListDataListener {
         g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2D.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.75f));
         g2D.setColor(Color.GRAY);
-        g2D.fill(currentShape);
+        if (model.getTarget().isFilled()) {
+          g2D.fill(currentShape);
+        }
         g2D.setPaintMode();
         g2D.setColor(getForeground());
         g2D.setStroke(new BasicStroke(1.5f / (float) scale, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));

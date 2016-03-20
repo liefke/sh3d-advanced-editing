@@ -27,7 +27,7 @@ public class AdvancedEditingPlugin extends Plugin {
   @Override
   public PluginAction[] getActions() {
     return new PluginAction[] { new RotateAction(this), new MoveAction(this), new FlipAction(this),
-        new ResizeAction(this), new EditRoomPointsAction(this),
+        new ResizeAction(this), new EditPointsAction(this),
         /*new CreateRoomWallsAction(this),*/new ConnectWallsAction(this), new ElevateAction(this) };
   }
 

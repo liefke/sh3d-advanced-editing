@@ -21,18 +21,18 @@ import de.starrunner.components.event.ChangeState;
 import de.starrunner.util.strings.Mnemonics;
 
 /**
- * Lets a user edit the points of a room.
+ * Lets a user edit the points of a room or polyline.
  *
  * Copyright (c) 2010 by Tobias Liefke
  *
  * @author Tobias Liefke
  */
-public class RoomPointsView extends ImmediateEditDialogView {
+public class PointsView extends ImmediateEditDialogView {
   private static final long serialVersionUID = -3184198019104925119L;
 
   private ChangeState changeState = new ChangeState();
 
-  private RoomPointsModel pointsModel;
+  private PointsModel pointsModel;
   private JList pointsList;
   private JTabbedPane lineTabs;
 
@@ -43,14 +43,14 @@ public class RoomPointsView extends ImmediateEditDialogView {
   private LineTab outgoingLineTab;
 
   /**
-   * Creates a new instance of RoomPointsView.
+   * Creates a new instance of PointsView.
    * 
    * @param home the application
    * @param preferences the current configuration
    * @param undoSupport used for undo support of the current action
    */
-  public RoomPointsView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
-    super(Msg.msg("RoomPointsView.dialogTitle"), home, preferences, undoSupport);
+  public PointsView(Home home, UserPreferences preferences, UndoableEditSupport undoSupport) {
+    super(Msg.msg("PointsView.dialogTitle"), home, preferences, undoSupport);
     initComponents();
   }
 
@@ -61,13 +61,13 @@ public class RoomPointsView extends ImmediateEditDialogView {
     String unitName = preferences.getLengthUnit().getName();
 
     // Create the list
-    JLabel pointsLabel = new JLabel(Msg.msg("RoomPointsView.pointsLabel"));
+    JLabel pointsLabel = new JLabel(Msg.msg("PointsView.pointsLabel"));
     add(pointsLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 0, 5, 0), 0, 0));
 
-    pointsModel = new RoomPointsModel();
+    pointsModel = new PointsModel();
     pointsList = new JList(pointsModel);
-    pointsList.setToolTipText(Msg.msg("RoomPointsView.pointsListTooltip"));
+    pointsList.setToolTipText(Msg.msg("PointsView.pointsListTooltip"));
     pointsList.setFixedCellWidth(100);
     pointsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     setInitialFocusedComponent(pointsList);
@@ -104,7 +104,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
     Mnemonics.configure(pointsLabel, pointsList);
 
     // Button for creating a new point 
-    JButton newButton = Mnemonics.configure(new JButton(Msg.msg("RoomPointsView.newButton")));
+    JButton newButton = Mnemonics.configure(new JButton(Msg.msg("PointsView.newButton")));
     newButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -129,17 +129,17 @@ public class RoomPointsView extends ImmediateEditDialogView {
     // The panel for the absolute coordinates of the current point
     final JPanel pointPanel = new JPanel(new GridBagLayout());
     pointPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-      Msg.msg("RoomPointsView.pointPanel")));
+      Msg.msg("PointsView.pointPanel")));
     add(pointPanel, new GridBagConstraints(1, 0, 1, 2, 0.0, 0.0, GridBagConstraints.FIRST_LINE_START,
         GridBagConstraints.HORIZONTAL, new Insets(0, 5, 0, 0), 0, 0));
 
     // Checkbox for moving the whole room
-    final JCheckBox moveAllBox = Mnemonics.configure(new JCheckBox(Msg.msg("RoomPointsView.moveAllBox")));
+    final JCheckBox moveAllBox = Mnemonics.configure(new JCheckBox(Msg.msg("PointsView.moveAllBox")));
     pointPanel.add(moveAllBox, new GridBagConstraints(0, 0, 4, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(5, 0, 0, 5), 0, 0));
 
     // Absolute x coordinate of the selected point
-    JLabel pointXLabel = new JLabel(Msg.msg("RoomPointsView.xLabel", unitName));
+    JLabel pointXLabel = new JLabel(Msg.msg("PointsView.xLabel", unitName));
     pointPanel.add(pointXLabel, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
     pointXModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -163,7 +163,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
     Mnemonics.configure(pointXLabel, pointXSpinner);
 
     // Absolute y coordinate of the selected point
-    JLabel pointYLabel = new JLabel(Msg.msg("RoomPointsView.yLabel", unitName));
+    JLabel pointYLabel = new JLabel(Msg.msg("PointsView.yLabel", unitName));
     pointPanel.add(pointYLabel, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
     pointYModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -192,13 +192,13 @@ public class RoomPointsView extends ImmediateEditDialogView {
         GridBagConstraints.BOTH, new Insets(0, 5, 0, 0), 0, 0));
 
     outgoingLineTab = new LineTab(1);
-    lineTabs.addTab(Msg.msg("RoomPointsView.outgoingLineTab"), outgoingLineTab);
+    lineTabs.addTab(Msg.msg("PointsView.outgoingLineTab"), outgoingLineTab);
 
     incomingLineTab = new LineTab(-1);
-    lineTabs.addTab(Msg.msg("RoomPointsView.incomingLineTab"), incomingLineTab);
+    lineTabs.addTab(Msg.msg("PointsView.incomingLineTab"), incomingLineTab);
 
     // Button for removing a point
-    final JButton removeButton = Mnemonics.configure(new JButton(Msg.msg("RoomPointsView.removeButton")));
+    final JButton removeButton = Mnemonics.configure(new JButton(Msg.msg("PointsView.removeButton")));
     removeButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -211,11 +211,11 @@ public class RoomPointsView extends ImmediateEditDialogView {
         GridBagConstraints.NONE, new Insets(5, 5, 0, 0), 0, 0));
 
     // Show preview
-    JLabel previewLabel = new JLabel(Msg.msg("RoomPointsView.previewLabel"));
+    JLabel previewLabel = new JLabel(Msg.msg("PointsView.previewLabel"));
     add(previewLabel, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
         GridBagConstraints.NONE, new Insets(0, 5, 5, 0), 0, 0));
 
-    final RoomPointsPreview preview = new RoomPointsPreview(pointsList);
+    final PointsPreview preview = new PointsPreview(pointsList);
     preview.setMarkNextLine(true);
     add(preview, new GridBagConstraints(2, 1, 1, 3, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
         new Insets(0, 5, 0, 0), 0, 0));
@@ -232,8 +232,8 @@ public class RoomPointsView extends ImmediateEditDialogView {
     pointsList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent e) {
-        if (!e.getValueIsAdjusting() && pointsModel.getRoom() != null) {
-          removeButton.setEnabled(pointsModel.getSize() > 1);
+        if (!e.getValueIsAdjusting() && pointsModel.getTarget() != null) {
+          removeButton.setEnabled(pointsModel.getSize() > 2);
           loadValues(null);
         }
       }
@@ -257,6 +257,14 @@ public class RoomPointsView extends ImmediateEditDialogView {
         incomingLineTab.loadLineValues(source);
         outgoingLineTab.loadLineValues(source);
       }
+
+      if (!pointsModel.getTarget().isClosed()) {
+        lineTabs.setEnabledAt(1, index > 0);
+        lineTabs.setEnabledAt(0, index < pointsModel.getSize() - 1);
+        if (!lineTabs.isEnabledAt(lineTabs.getSelectedIndex())) {
+          lineTabs.setSelectedIndex((lineTabs.getSelectedIndex() + 1) % 2);
+        }
+      }
     } finally {
       if (!changing) {
         changeState.stop();
@@ -277,31 +285,45 @@ public class RoomPointsView extends ImmediateEditDialogView {
     LengthUnit lengthUnit = preferences.getLengthUnit();
     List<Selectable> selectedItems = home.getSelectedItems();
     List<Room> selectedRooms = Home.getRoomsSubList(selectedItems);
-    RoomEdit edit;
-    if (selectedRooms.size() == 0) {
-      // Use the last existing room
-      List<Room> rooms = home.getRooms();
-      if (!rooms.isEmpty()) {
-        // Change the last room
-        edit = new RoomPointsEdit(rooms.get(rooms.size() - 1));
-      } else {
-        // Add a new room
-        // Default to 5 meter or 12 feet
-        float length;
-        if (lengthUnit == LengthUnit.INCH || lengthUnit == LengthUnit.INCH_DECIMALS) {
-          length = LengthUnit.inchToCentimeter(144);
-        } else {
-          length = 500;
-        }
-        edit = new NewRoomEdit(home, length);
-      }
+    ContainerEdit edit;
+    if (selectedRooms.size() > 0) {
+      // Use the first selected room
+      edit = new PointsEdit(new RoomPoints(selectedRooms.get(0)));
     } else {
-      // Change the selected room
-      edit = new RoomPointsEdit(selectedRooms.get(0));
+      // No room selected
+
+      List<Polyline> selectedPolylines = Home.getPolylinesSubList(selectedItems);
+      if (selectedPolylines.size() > 0) {
+        // Use the first selected polyline
+        edit = new PointsEdit(new PolylinePoints(selectedPolylines.get(0)));
+      } else {
+        // No polyline selected
+        List<Room> rooms = Home.getRoomsSubList(home.getSelectableViewableItems());
+        if (!rooms.isEmpty()) {
+          // Use the last visible room
+          edit = new PointsEdit(new RoomPoints(rooms.get(rooms.size() - 1)));
+        } else {
+          List<Polyline> polylines = Home.getPolylinesSubList(home.getSelectableViewableItems());
+          if (!polylines.isEmpty()) {
+            // Use the last visible polyline
+            edit = new PointsEdit(new PolylinePoints(polylines.get(0)));
+          } else {
+            // Add a new room
+            // Default to 5 meter or 12 feet
+            float length;
+            if (lengthUnit == LengthUnit.INCH || lengthUnit == LengthUnit.INCH_DECIMALS) {
+              length = LengthUnit.inchToCentimeter(144);
+            } else {
+              length = 500;
+            }
+            edit = new NewRoomEdit(home, length);
+          }
+        }
+      }
     }
     edit.doAction();
     pointsModel.setUnit(lengthUnit);
-    pointsModel.setRoom(edit.getTarget());
+    pointsModel.setTarget(edit.getTarget());
     pointsList.setSelectedIndex(0);
     lineTabs.setSelectedIndex(0);
 
@@ -376,12 +398,12 @@ public class RoomPointsView extends ImmediateEditDialogView {
       // The panel for the absolute coordinates of the other point
       JPanel pointPanel = new JPanel(new GridBagLayout());
       pointPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-        Msg.msg("RoomPointsView.otherPointPanel", distance)));
+        Msg.msg("PointsView.otherPointPanel", distance)));
       add(pointPanel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.FIRST_LINE_START,
           GridBagConstraints.HORIZONTAL, new Insets(5, 0, 0, 0), 0, 0));
 
       // Absolute x coordinate of the other point
-      JLabel otherPointXLabel = new JLabel(Msg.msg("RoomPointsView.xLabel", unitName));
+      JLabel otherPointXLabel = new JLabel(Msg.msg("PointsView.xLabel", unitName));
       pointPanel.add(otherPointXLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
       otherPointXModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -401,7 +423,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
       Mnemonics.configure(otherPointXLabel, otherPointXSpinner);
 
       // Absolute y coordinate of the other point
-      JLabel otherPointYLabel = new JLabel(Msg.msg("RoomPointsView.yLabel", unitName));
+      JLabel otherPointYLabel = new JLabel(Msg.msg("PointsView.yLabel", unitName));
       pointPanel.add(otherPointYLabel, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
       otherPointYModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -423,12 +445,12 @@ public class RoomPointsView extends ImmediateEditDialogView {
       // The panel for the line
       JPanel linePanel = new JPanel(new GridBagLayout());
       linePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
-        Msg.msg("RoomPointsView.linePanel", distance)));
+        Msg.msg("PointsView.linePanel", distance)));
       add(linePanel, new GridBagConstraints(0, 1, 1, 1, 1.0, 0.0, GridBagConstraints.FIRST_LINE_START,
           GridBagConstraints.HORIZONTAL, new Insets(5, 0, 0, 0), 0, 0));
 
       // X distance of the line
-      JLabel lineXLabel = new JLabel(Msg.msg("RoomPointsView.xLabel", unitName));
+      JLabel lineXLabel = new JLabel(Msg.msg("PointsView.xLabel", unitName));
       linePanel.add(lineXLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 0, 5), 0, 0));
       lineXModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -449,7 +471,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
       Mnemonics.configure(lineXLabel, lineXSpinner);
 
       // Y distance of the line
-      JLabel lineYLabel = new JLabel(Msg.msg("RoomPointsView.yLabel", unitName));
+      JLabel lineYLabel = new JLabel(Msg.msg("PointsView.yLabel", unitName));
       linePanel.add(lineYLabel, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 0, 5), 0, 0));
       lineYModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -470,7 +492,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
       Mnemonics.configure(lineYLabel, lineYSpinner);
 
       // The distance between the points
-      JLabel lengthLabel = new JLabel(Msg.msg("RoomPointsView.lengthLabel", unitName));
+      JLabel lengthLabel = new JLabel(Msg.msg("PointsView.lengthLabel", unitName));
       linePanel.add(lengthLabel, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
       lengthModel = new NullableSpinnerLengthModel(preferences, -100000f, 100000f);
@@ -492,7 +514,7 @@ public class RoomPointsView extends ImmediateEditDialogView {
       Mnemonics.configure(lengthLabel, vectorLengthSpinner);
 
       // The angle of the line from this point to the next
-      JLabel angleLabel = new JLabel(Msg.msg("RoomPointsView.angleLabel"));
+      JLabel angleLabel = new JLabel(Msg.msg("PointsView.angleLabel"));
       linePanel.add(angleLabel, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0, GridBagConstraints.LINE_START,
           GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
       angleModel = new NullableSpinnerNumberModel(0f, -360f, 360f, 0.5f);
@@ -517,67 +539,69 @@ public class RoomPointsView extends ImmediateEditDialogView {
   }
 
   /**
-   * Base class for any modifications to the room.
+   * Base class for any modifications to the target.
    */
-  private abstract static class RoomEdit extends AbstractObjectEdit<Room> {
-    private static final long serialVersionUID = 2715739085750697063L;
+  private abstract static class ContainerEdit extends AbstractObjectEdit<PointsContainer> {
+    private static final long serialVersionUID = 1L;
 
     /**
-     * Creates a new instance of RoomEdit.
+     * Creates a new instance of an Edit.
      *
-     * @param room the edited room
+     * @param target the edited container
      */
-    public RoomEdit(Room room) {
-      super(room);
+    public ContainerEdit(PointsContainer target) {
+      super(target);
     }
 
     @Override
     public String getPresentationName() {
-      return Msg.msg("RoomPointsView.pointsEdit");
+      return Msg.msg("PointsView.pointsEdit");
     }
   }
 
   /**
    * Adds a new room to the plan.
    */
-  private static final class NewRoomEdit extends RoomEdit {
-    private static final long serialVersionUID = 3418154221734909643L;
+  private static final class NewRoomEdit extends ContainerEdit {
+    private static final long serialVersionUID = 1L;
 
     private final List<Selectable> selectedItems;
     private final Home home;
+    private final Room room;
 
     private NewRoomEdit(Home home, float length) {
-      super(new Room(new float[][] { { 0, 0 }, { length, 0 }, { length, length }, { 0, length } }));
+      super(new RoomPoints(new Room(new float[][] { { 0, 0 }, { length, 0 }, { length, length }, { 0, length } })));
       this.home = home;
+      this.room = ((RoomPoints) target).getRoom();
       this.selectedItems = home.getSelectedItems();
     }
 
     @Override
     public void undoAction() throws CannotUndoException {
       home.setSelectedItems(selectedItems);
-      home.deleteRoom(target);
+      home.deleteRoom(room);
     }
 
     @Override
     public void doAction() throws CannotRedoException {
-      home.addRoom(target);
-      home.setSelectedItems(Collections.singletonList(target));
+      home.addRoom(room);
+      home.setSelectedItems(Collections.singletonList(room));
     }
 
   }
 
   /**
-   * Adds the points of a room in the plan.
+   * Changes the points of a room or polyline in the plan.
    */
-  private static final class RoomPointsEdit extends RoomEdit {
-    private static final long serialVersionUID = -9063757164674999439L;
+  private static final class PointsEdit extends ContainerEdit {
+    private static final long serialVersionUID = 1L;
 
     private final float[][] oldPoints;
     private float[][] newPoints;
 
-    private RoomPointsEdit(Room room) {
-      super(room);
-      this.newPoints = this.oldPoints = room.getPoints();
+    private PointsEdit(PointsContainer container) {
+      super(container);
+      this.newPoints = this.oldPoints = container.getPoints();
     }
 
     @Override
