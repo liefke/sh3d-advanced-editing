@@ -46,10 +46,14 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       List<Selectable> selectedItems = new ArrayList<Selectable>();
       selectedItems.addAll(home.getWalls());
       selectedItems.addAll(home.getRooms());
+      selectedItems.addAll(home.getPolylines());
       selectedItems.addAll(home.getDimensionLines());
       selectedItems.addAll(home.getLabels());
       selectedItems.addAll(home.getFurniture());
-      selectedItems.add(home.getCompass());
+      selectedItems.add(home.getObserverCamera());
+      if (home.getCompass().isVisible()) {
+        selectedItems.add(home.getCompass());
+      }
       home.setSelectedItems(selectedItems);
     }
 
@@ -59,6 +63,8 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         target.add(new WallState((Wall) item));
       } else if (item instanceof Room) {
         target.add(new RoomState((Room) item));
+      } else if (item instanceof Polyline) {
+        target.add(new PolylineState((Polyline) item));
       } else if (item instanceof Label) {
         target.add(new LabelState((Label) item));
       } else if (item instanceof DimensionLine) {
@@ -317,9 +323,13 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
 
     private Integer leftSideColor;
     private HomeTexture leftSideTexture;
+    private Baseboard leftSideBaseboard;
+    private float leftSideShininess;
 
     private Integer rightSideColor;
     private HomeTexture rightSideTexture;
+    private Baseboard rightSideBaseboard;
+    private float rightSideShininess;
 
     /**
      * Creates a new wall state.
@@ -335,18 +345,33 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       // Save the styles for mirroring
       leftSideColor = wall.getLeftSideColor();
       leftSideTexture = wall.getLeftSideTexture();
+      leftSideBaseboard = wall.getLeftSideBaseboard();
+      leftSideShininess = wall.getLeftSideShininess();
+
       rightSideColor = wall.getRightSideColor();
       rightSideTexture = wall.getRightSideTexture();
+      rightSideBaseboard = wall.getRightSideBaseboard();
+      rightSideShininess = wall.getRightSideShininess();
+
     }
 
     @Override
     public void reset() {
       setStartPoint(startPoint);
       setEndPoint(endPoint);
+      resetStyleChanges();
+    }
+
+    private void resetStyleChanges() {
       object.setLeftSideColor(leftSideColor);
       object.setLeftSideTexture(leftSideTexture);
+      object.setLeftSideBaseboard(leftSideBaseboard);
+      object.setLeftSideShininess(leftSideShininess);
+
       object.setRightSideColor(rightSideColor);
       object.setRightSideTexture(rightSideTexture);
+      object.setRightSideBaseboard(rightSideBaseboard);
+      object.setRightSideShininess(rightSideShininess);
     }
 
     @Override
@@ -360,14 +385,15 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
         // If this is a mirroring transformation exhange the left and right style
         object.setLeftSideColor(rightSideColor);
         object.setLeftSideTexture(rightSideTexture);
+        object.setLeftSideBaseboard(rightSideBaseboard);
+        object.setLeftSideShininess(rightSideShininess);
         object.setRightSideColor(leftSideColor);
         object.setRightSideTexture(leftSideTexture);
+        object.setRightSideBaseboard(leftSideBaseboard);
+        object.setRightSideShininess(leftSideShininess);
       } else {
         // Undo a possible style exchange
-        object.setLeftSideColor(leftSideColor);
-        object.setLeftSideTexture(leftSideTexture);
-        object.setRightSideColor(rightSideColor);
-        object.setRightSideTexture(rightSideTexture);
+        resetStyleChanges();
       }
     }
 
@@ -478,6 +504,42 @@ public class TransformEdit extends AbstractObjectEdit<List<ObjectState<? extends
       object.setAreaAngle(transformOptions.transformTextAngle(areaAngle));
     }
 
+  }
+
+  /**
+   * Saves the state of a polyline.
+   */
+  private static final class PolylineState extends ObjectState<Polyline> {
+    private final float[][] points;
+
+    /**
+     * Creates a new polyline state.
+     *
+     * @param polyline the associated polyline
+     */
+    public PolylineState(Polyline polyline) {
+      super(polyline);
+      points = polyline.getPoints();
+    }
+
+    @Override
+    public void reset() {
+      object.setPoints(points);
+    }
+
+    @Override
+    public void transform(TransformOptions transformOptions) {
+      AffineTransform transformation = transformOptions.getTransformation();
+
+      // Create a new array for modification
+      float[][] points = new float[this.points.length][];
+      for (int i = 0; i < points.length; i++) {
+        float[] newPoint = new float[2];
+        transformation.transform(this.points[i], 0, newPoint, 0, 1);
+        points[i] = newPoint;
+      }
+      object.setPoints(points);
+    }
   }
 
   /**
