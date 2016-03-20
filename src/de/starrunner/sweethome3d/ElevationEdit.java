@@ -67,7 +67,7 @@ public class ElevationEdit extends AbstractObjectEdit<List<ElevationEdit.Furnitu
 
   private void transform(float elevation) {
     for (FurnitureState state : target) {
-      state.furniture.setElevation(state.elevation + elevation);
+      state.furniture.setElevation(Math.max(state.elevation + elevation, 0));
     }
   }
 
