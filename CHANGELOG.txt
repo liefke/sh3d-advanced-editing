@@ -1,0 +1,64 @@
+Changes:
+
+News in release (1.8) on ___ November 2026
+    -Move the “ApplicationPlugin.properties” file from the “META-INF” folder to the plugin's root directory
+    -Added a “locales” folder containing files for all available languages
+    -Added the specific entries (menu, short description, icon) to all Java “Action” files and remove them from the package files
+    -Implement dynamic translation for the plugin when the user changes the language OR the unit of measurement
+    
+    *Under the “Plan” menu:
+    --Add the “Modify Home” action, which allows you to modify the entire master plan, including the background images.
+    (Replace RotateHome plugin)
+    --Add the “Modify Background Image” action, which allows you to modify the background image of the selected level.
+    *Under the "Edit" menu:
+    --Modify "Flip" action adding two new options.
+    *Under the "Furniture" menu:
+    --Add Distribute elevation
+    
+**************
+
+News in release (1.7) on 20 March 2016
+    -Elevation of furniture is never negative
+    -Added new french translations
+    -Support for polylines in all transformation actions
+    -Support to edit the polylines with the existing "edit points" action
+**************
+
+News in release (1.6) on 01 May 2015
+	-added the action "Move" to move all selected items by a specific x or y amount
+**************
+
+News in release (1.5.1) on 01 May 2015
+	-integrated the changes in the pull request made by Igor Perminov
+	-includes the german and (hopefully correct) french translations
+	-added support for the compass in all transformation dialogs
+**************
+
+News in release (1.4) on 08 February 2015
+	-fix inches computation
+**************
+
+News in release (1.3) on 23 December 2014
+    -Added "Elevate furniture" action - lets you elevate many furnitures by the same amount (keeping the relative elevation between each other, in difference to the default edit action, which moves all selected furniture to the same elevation)
+    -If no room is selected, the last created is used for "edit room points"
+
+**************
+
+News in release (1.2) on 24 September 2010
+    -Added "Rotate" action - rotates the selected objects in arbitrary angles
+    -Flip wall styles on mirroring (= when using negative factors in resize dialog)
+**************
+
+News in release (1.1) on 20 September 2010
+    -Renamed "Join wall" -> "Connect walls"
+    -Fixed problems in resizing when selected elements have zero height or width
+    -Fixed usage of unit in resize dialog
+    -Added preview panel to "Edit room points" for better visualization of points and edges
+**************
+
+First oficial release (1.0) on 15 September 2010
+This plugin provides the following actions:
+    -Resize (selected objects)
+    -Edit room points (in a dialog)
+    -Join walls
+**************
